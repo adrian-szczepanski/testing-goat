@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Test runner
+TEST_RUNNER='green.djangorunner.DjangoRunner'
 
 # Application definition
 
