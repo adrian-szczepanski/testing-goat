@@ -27,7 +27,6 @@ class NewVisitorTest(LiveServerTestCase):
             except (
                 AssertionError,
                 WebDriverException,
-                StaleElementReferenceException,
             ) as e:
                 if time.time() - start_time > MAX_WAIT:
                     raise e
