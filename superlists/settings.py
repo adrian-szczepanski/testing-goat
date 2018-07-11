@@ -25,7 +25,7 @@ SECRET_KEY = 'jlbeg=-w@sm66wo0p*lclhq+m*5)^pz1dzl!i(k(^6zqtlo_er'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Test runner
 TEST_RUNNER='green.djangorunner.DjangoRunner'
