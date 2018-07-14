@@ -38,18 +38,30 @@
         app_path: /home/{{ ansible_ssh_user }}/sites/{{ host }}
         command: migrate
         virtualenv: /home/{{ ansible_ssh_user }}/.virtualenvs/{{ host }}
+      become_user: "{{ ansible_ssh_user }}"
 
     - name: collect static django files
       django_manage:
         app_path: /home/{{ ansible_ssh_user }}/sites/{{ host }}
         command: collectstatic
         virtualenv: /home/{{ ansible_ssh_user }}/.virtualenvs/{{ host }}
+      become_user: "{{ ansible_ssh_user }}"
 
     - name: create env file
       file:
         path: /home/{{ ansible_ssh_user }}/sites/{{ host }}/.env
         state: touch
       become_user: "{{ ansible_ssh_user }}"
+
+    - name: check for secret key
+      shell: cat /home/{{ ansible_ssh_user}}/sites/{{ host }}/.env | grep DJANGO_SECRET_KEY | wc -l
+      register: secret_key_in_env
+
+    - name: add secret key to env file
+      lineinfile:
+        path: /home/{{ ansible_ssh_user }}/sites/{{ host }}/.env
+        line: DJANGO_SECRET_KEY={{ django_secret_key }}
+      when: secret_key_in_env.stdout == "0"
 
     - name: populate env file
       lineinfile: 
