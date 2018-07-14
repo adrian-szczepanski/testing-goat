@@ -1,0 +1,101 @@
+---
+
+- hosts: all
+  vars:
+    host: "{{ inventory_hostname }}"
+  gather_facts: no
+  pre_tasks:
+    - name: install python 2
+      raw: sudo apt -y install python
+  
+  tasks:
+    - name: gather facts
+      setup:
+
+    - name: deploy code from GitHub repo
+      git:
+        repo: https://github.com/adrian-szczepanski/testing-goat.git
+        dest: /home/{{ ansible_ssh_user }}/sites/{{ host }}
+      become_user: "{{ ansible_ssh_user }}"
+
+    - name: make sure required packages are installed
+      apt:
+        pkg: 
+          - nginx
+          - python3.6
+          - virtualenv
+          - python3-pip
+        state: present
+
+    - name: install python packages
+      pip:
+        requirements: /home/{{ ansible_ssh_user }}/sites/{{ host }}/requirements.txt
+        virtualenv: /home/{{ ansible_ssh_user }}/.virtualenvs/{{ host }}
+        virtualenv_python: python3.6
+
+    - name: migrate django database
+      django_manage:
+        app_path: /home/{{ ansible_ssh_user }}/sites/{{ host }}
+        command: migrate
+        virtualenv: /home/{{ ansible_ssh_user }}/.virtualenvs/{{ host }}
+
+    - name: collect static django files
+      django_manage:
+        app_path: /home/{{ ansible_ssh_user }}/sites/{{ host }}
+        command: collectstatic
+        virtualenv: /home/{{ ansible_ssh_user }}/.virtualenvs/{{ host }}
+
+    - name: create env file
+      file:
+        path: /home/{{ ansible_ssh_user }}/sites/{{ host }}/.env
+        state: touch
+      become_user: "{{ ansible_ssh_user }}"
+
+    - name: populate env file
+      lineinfile: 
+        path: /home/{{ ansible_ssh_user }}/sites/{{ host }}/.env
+        regexp: "^{{ item.key }}"
+        line: "{{ item.key }}={{ item.value }}"
+      with_dict:
+        - DJANGO_DEBUG_FALSE: y
+        - SITENAME: "{{ host }}"
+
+    - name: allow long hostnames in nginx
+      lineinfile:
+        dest: /etc/nginx/nginx.conf
+        regexp: '(\s+)#? ?server_names_hash_bucket_size'
+        backrefs: yes
+        line: '\1server_names_hash_bucket_size 64;'
+
+    - name: add nginx config to sites-available
+      template: src=../nginx.conf.j2 dest=/etc/nginx/sites-available/{{ host }}
+      notify:
+          - restart nginx
+
+    - name: add symlink in nginx sites-enabled
+      file:
+        src: /etc/nginx/sites-available/{{ host }}
+        dest: /etc/nginx/sites-enabled/{{ host }}
+        state: link
+      notify:
+          - restart nginx
+
+    - name: write gunicorn service script
+      template:
+        src: ../gunicorn.service.j2
+        dest: /etc/systemd/system/gunicorn-{{ host }}.service
+      notify:
+          - restart gunicorn
+ 
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx 
+        state: restarted
+
+    - name: restart gunicorn
+      systemd:
+        name: gunicorn-{{ host }}
+        daemon_reload: yes
+        enabled: yes
+        state: restarted

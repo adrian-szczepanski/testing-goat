@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os
-
+import random
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +23,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Environment-specific settings
 if 'DJANGO_DEBUG_FALSE' in os.environ:
     DEBUG = False
-    SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+    if 'DJANGO_SECRET_KEY' in os.environ:
+        SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
+    else:
+        SECRET_KEY = ''.join(random.SystemRandom().choices(
+            'abcdefghijklmnopqrstuvwxyz0123456789', k=50
+        ))
+        with open('.env', 'a') as env_file:
+            env_file.write('\nDJANGO_SECRET_KEY={}\n'.format(SECRET_KEY))
+
     ALLOWED_HOSTS = [os.environ['SITENAME']]
 else:
     DEBUG = True

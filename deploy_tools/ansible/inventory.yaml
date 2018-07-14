@@ -1,0 +1,19 @@
+all:
+  children:
+    live:
+      hosts:
+        superlists.aszczepanski.pl:
+          ansible_become: yes
+          ansible_ssh_user: aszczepanski
+    staging:
+      hosts:
+        superlists-staging.aszczepanski.pl:
+          ansible_become: yes
+          ansible_ssh_user: aszczepanski
+    vagrant:
+      hosts:
+        localhost:
+          ansible_become: yes
+          ansible_ssh_user: vagrant
+          ansible_ssh_port: 2222
+          ansible_host: 127.0.0.1
